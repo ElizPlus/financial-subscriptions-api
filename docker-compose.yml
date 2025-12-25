@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: subscriptions_user
+      POSTGRES_PASSWORD: secure_password_123
+      POSTGRES_DB: subscriptions_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    command: python run.py
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://subscriptions_user:secure_password_123@db/subscriptions_db
+      SECRET_KEY: production-secret-key-change-this
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

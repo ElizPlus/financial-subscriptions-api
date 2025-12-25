@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тестирование API подписок</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f8f9fa; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .step { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #3498db; }
+        .step h3 { color: #2c3e50; margin-top: 0; }
+        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; font-weight: bold; }
+        button:hover { background: #2980b9; }
+        button.secondary { background: #95a5a6; }
+        button.secondary:hover { background: #7f8c8d; }
+        input, select, textarea { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; width: 200px; }
+        textarea { width: calc(100% - 20px); }
+        .result { background: #ecf0f1; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .info { background: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .subscription-item { background: white; padding: 15px; margin: 10px 0; border-radius: 5px; border: 1px solid #ddd; }
+        .subscription-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .stats { background: #e8f4f8; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .current-token { background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0; font-family: monospace; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Тестирование API Financial Subscriptions</h1>
+        <p>Протестируйте работу REST API для управления финансовыми подписками</p>
+        
+        <!-- Шаг 0: Текущий статус -->
+        <div class="step">
+            <h3>Текущий статус</h3>
+            <div class="stats">
+                <p><strong>Статус сервера:</strong> <span id="serverStatus">Не проверен</span></p>
+                <p><strong>Токен:</strong> <span id="tokenStatus">Не установлен</span></p>
+                <p><strong>Всего подписок:</strong> <span id="totalSubscriptions">0</span></p>
+            </div>
+            <button onclick="checkHealth()">Проверить здоровье сервера</button>
+            <div id="healthResult" class="result"></div>
+        </div>
+        
+        <!-- Шаг 1: Получить токен -->
+        <div class="step">
+            <h3>Получить токен доступа</h3>
+            <p>Сначала зарегистрируйтесь или используйте готовый токен</p>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 300px;">
+                    <h4>Регистрация нового пользователя</h4>
+                    <input type="text" id="username" placeholder="Имя пользователя" value="test_user"><br>
+                    <input type="email" id="email" placeholder="Email" value="test@example.com"><br>
+                    <input type="password" id="password" placeholder="Пароль" value="password123"><br>
+                    <button onclick="register()">Зарегистрироваться</button>
+                    <div id="tokenResult" class="result"></div>
+                </div>
+                
+                <div style="flex: 1; min-width: 300px;">
+                    <h4>Использовать готовый токен</h4>
+                    <textarea id="manualToken" placeholder="Вставьте токен сюда" rows="3"></textarea><br>
+                    <button onclick="setManualToken()" class="secondary">Использовать этот токен</button>
+                    <div class="current-token">
+                        <strong>Текущий токен:</strong><br>
+                        <span id="currentTokenDisplay">Не установлен</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Шаг 2: Создать подписку -->
+        <div class="step">
+            <h3>Создать новую подписку</h3>
+            <p>Создайте тестовую подписку для пользователя</p>
+            
+            <input type="text" id="subName" placeholder="Название подписки" value="Spotify Premium">
+            <input type="number" id="subAmount" placeholder="Сумма в $" value="9.99" step="0.01">
+            <select id="subPeriodicity">
+                <option value="monthly">Ежемесячно</option>
+                <option value="yearly">Ежегодно</option>
+                <option value="weekly">Еженедельно</option>
+                <option value="daily">Ежедневно</option>
+                <option value="quarterly">Ежеквартально</option>
+            </select>
+            <button onclick="createSubscription()">Создать подписку</button>
+            
+            <div id="createResult" class="result"></div>
+            
+            <div style="margin-top: 20px;">
+                <h4>Быстрые примеры:</h4>
+                <button onclick="createExample('Netflix', 15.99, 'monthly')" class="secondary">Netflix (15.99$/мес)</button>
+                <button onclick="createExample('YouTube Premium', 11.99, 'monthly')" class="secondary">YouTube Premium (11.99$/мес)</button>
+                <button onclick="createExample('Microsoft 365', 69.99, 'yearly')" class="secondary">Microsoft 365 (69.99$/год)</button>
+            </div>
+        </div>
+        
+        <!-- Шаг 3: Просмотреть подписки -->
+        <div class="step">
+            <h3>Просмотреть все подписки</h3>
+            <p>Просмотрите список всех активных подписок пользователя</p>
+            
+            <button onclick="getSubscriptions()">Показать мои подписки</button>
+            <button onclick="clearSubscriptionsDisplay()" class="secondary">Очистить список</button>
+            
+            <div id="subscriptionsContainer" style="margin-top: 20px;">
+            </div>
+            
+            <div id="subscriptionsSummary" class="stats" style="display: none;">
+                <h4>Итоговая статистика</h4>
+                <p><strong>Всего подписок:</strong> <span id="totalCount">0</span></p>
+                <p><strong>Общая сумма в месяц:</strong> $<span id="monthlyTotal">0.00</span></p>
+                <p><strong>Общая сумма в год:</strong> $<span id="yearlyTotal">0.00</span></p>
+            </div>
+            
+            <div id="subscriptionsResult" class="result"></div>
+        </div>
+        
+        <!-- Шаг 4: Дополнительные операции -->
+        <div class="step">
+            <h3>Дополнительные операции</h3>
+            <p>Протестируйте другие функции API</p>
+            
+            <button onclick="editSubscription()" class="secondary">Редактировать подписку (по ID)</button>
+            <button onclick="deleteSubscription()" class="secondary">Удалить подписку (по ID)</button>
+            
+            <div id="testResults" class="result"></div>
+        </div>
+
+    </div>
+    
+    <script>
+        // Глобальные переменные
+        let token = '';
+        let currentSubscriptions = [];
+        
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        window.onload = function() {
+            // Загружаем сохраненный токен из localStorage
+            const savedToken = localStorage.getItem('api_token');
+            if (savedToken) {
+                token = savedToken;
+                updateTokenDisplay();
+            }
+            
+            // Обновляем статус
+            updateStatus();
+        };
+        
+        // ========== ОБНОВЛЕНИЕ СТАТУСА ==========
+        function updateStatus() {
+            document.getElementById('tokenStatus').textContent = token ? 'Установлен' : 'Не установлен';
+            document.getElementById('totalSubscriptions').textContent = currentSubscriptions.length;
+        }
+        
+        function updateTokenDisplay() {
+            const display = document.getElementById('currentTokenDisplay');
+            if (token) {
+                // Показываем только начало и конец токена для безопасности
+                const shortToken = token.length > 30 
+                    ? token.substring(0, 20) + '...' + token.substring(token.length - 10)
+                    : token;
+                display.textContent = shortToken;
+                display.title = token; // Полный токен при наведении
+            } else {
+                display.textContent = 'Не установлен';
+            }
+            updateStatus();
+        }
+        
+        // ========== ШАГ 0: ПРОВЕРКА ЗДОРОВЬЯ ==========
+        function checkHealth() {
+            clearResult('healthResult');
+            document.getElementById('serverStatus').textContent = 'Проверяется...';
+            
+            fetch('http://localhost:5000/api/health')
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('serverStatus').textContent = 'Работает';
+                document.getElementById('healthResult').innerHTML = 
+                    `<div class="success">
+                        <strong>Сервер работает нормально!</strong><br>
+                        Статус: <strong>${data.status}</strong><br>
+                        Время ответа: ${new Date().toLocaleTimeString()}
+                    </div>`;
+            })
+            .catch(error => {
+                document.getElementById('serverStatus').textContent = 'Ошибка';
+                document.getElementById('healthResult').innerHTML = 
+                    `<div class="error">
+                        <strong>Сервер не отвечает!</strong><br>
+                        Ошибка: ${error.message}<br>
+                        Убедитесь, что сервер запущен на порту 5000
+                    </div>`;
+            });
+        }
+        
+        // Получение токена 
+        function setManualToken() {
+            const manualToken = document.getElementById('manualToken').value.trim();
+            if (manualToken) {
+                token = manualToken;
+                localStorage.setItem('api_token', token);
+                updateTokenDisplay();
+                
+                // Показываем успех
+                clearResult('tokenResult');
+                document.getElementById('tokenResult').innerHTML = 
+                    `<div class="success">
+                        <strong>Токен успешно установлен!</strong><br>
+                        Теперь вы можете создавать и просматривать подписки.
+                    </div>`;
+            } else {
+                alert('Введите токен в поле для ввода');
+            }
+        }
+        
+        function register() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !email || !password) {
+                alert('Заполните все поля регистрации');
+                return;
+            }
+            
+            clearResult('tokenResult');
+            document.getElementById('tokenResult').innerHTML = '<em>Регистрация...</em>';
+            
+            fetch('http://localhost:5000/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.token) {
+                    token = data.token;
+                    localStorage.setItem('api_token', token);
+                    updateTokenDisplay();
+                    
+                    document.getElementById('tokenResult').innerHTML = 
+                        `<div class="success">
+                            <strong>Пользователь успешно зарегистрирован!</strong><br>
+                            <strong>Имя:</strong> ${data.username || username}<br>
+                            <strong>Email:</strong> ${data.email || email}<br>
+                            <strong>ID пользователя:</strong> ${data.user_id || 'N/A'}<br>
+                            <strong>Токен сохранен автоматически.</strong>
+                        </div>`;
+                        
+                    // Автоматически заполняем поле токена
+                    document.getElementById('manualToken').value = token;
+                } else {
+                    throw new Error(data.error || 'Неизвестная ошибка');
+                }
+            })
+            .catch(error => {
+                document.getElementById('tokenResult').innerHTML = 
+                    `<div class="error">
+                        <strong>Ошибка регистрации:</strong> ${error.message}
+                    </div>`;
+            });
+        }
+        
+        // ========== ШАГ 2: СОЗДАНИЕ ПОДПИСКИ ==========
+        function createSubscription() {
+            if (!token) {
+                alert('Сначала получите или установите токен (Шаг 1)');
+                return;
+            }
+            
+            const name = document.getElementById('subName').value;
+            const amount = parseFloat(document.getElementById('subAmount').value);
+            const periodicity = document.getElementById('subPeriodicity').value;
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (!name || !amount || amount <= 0) {
+                alert('Заполните корректно название и сумму подписки');
+                return;
+            }
+            
+            clearResult('createResult');
+            document.getElementById('createResult').innerHTML = '<em>Создание подписки...</em>';
+            
+            fetch('http://localhost:5000/api/subscriptions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name,
+                    amount,
+                    periodicity,
+                    start_date: today
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.subscription) {
+                    document.getElementById('createResult').innerHTML = 
+                        `<div class="success">
+                            <strong>Подписка успешно создана!</strong><br>
+                            <strong>Название:</strong> ${data.subscription.name}<br>
+                            <strong>Сумма:</strong> $${data.subscription.amount}<br>
+                            <strong>Периодичность:</strong> ${translatePeriodicity(data.subscription.periodicity)}<br>
+                            <strong>Дата начала:</strong> ${formatDate(data.subscription.start_date)}<br>
+                            <strong>ID подписки:</strong> ${data.subscription.id}
+                        </div>`;
+                        
+                    // Обновляем счетчик
+                    updateStatus();
+                } else {
+                    throw new Error(data.error || JSON.stringify(data.errors));
+                }
+            })
+            .catch(error => {
+                document.getElementById('createResult').innerHTML = 
+                    `<div class="error">
+                        <strong>Ошибка создания подписки:</strong> ${error.message}
+                    </div>`;
+            });
+        }
+
+        // редактирование подписки
+        function editSubscription() {
+            if (!token) {
+                alert('Сначала получите или установите токен');
+                return;
+            }
+            
+            const subId = prompt('Введите ID подписки для редактирования:');
+            if (!subId) return;
+            
+            const newName = prompt('Новое название (оставьте пустым чтобы не менять):');
+            const newAmount = prompt('Новая сумма (оставьте пустым чтобы не менять):');
+            const newPeriodicity = prompt('Новая периодичность (monthly, yearly, weekly, daily, quarterly):');
+            const newNextDate = prompt('Новая дата следующего платежа (ГГГГ-ММ-ДД):');
+            
+            const updateData = {};
+            if (newName) updateData.name = newName;
+            if (newAmount) updateData.amount = parseFloat(newAmount);
+            if (newPeriodicity) updateData.periodicity = newPeriodicity;
+            if (newNextDate) updateData.next_payment_date = newNextDate;
+            
+            if (Object.keys(updateData).length === 0) {
+                alert('Не указано ни одного поля для обновления');
+                return;
+            }
+            
+            fetch(`http://localhost:5000/api/subscriptions/${subId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updateData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.subscription) {
+                    alert(`Подписка обновлена!\nНовое название: ${data.subscription.name}\nНовая сумма: $${data.subscription.amount}`);
+                    // Обновляем список подписок если он открыт
+                    if (currentSubscriptions.length > 0) {
+                        getSubscriptions();
+                    }
+                } else {
+                    throw new Error(data.error || 'Ошибка обновления');
+                }
+            })
+            .catch(error => {
+                alert(`Ошибка редактирования: ${error.message}`);
+            });
+        }
+
+        //удаление подписки
+        function deleteSubscription() {
+            if (!token) {
+                alert('Сначала получите или установите токен');
+                return;
+            }
+            
+            const subId = prompt('Введите ID подписки для удаления:');
+            if (!subId) return;
+            
+            if (!confirm(`Вы уверены, что хотите удалить подписку с ID ${subId}?`)) {
+                return;
+            }
+            
+            fetch(`http://localhost:5000/api/subscriptions/${subId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(`${data.message}`);
+                    // Обновляем список подписок
+                    if (currentSubscriptions.length > 0) {
+                        getSubscriptions();
+                    }
+                } else {
+                    throw new Error(data.error || 'Ошибка удаления');
+                }
+            })
+            .catch(error => {
+                alert(`Ошибка удаления: ${error.message}`);
+            });
+        }
+        
+        function createExample(name, amount, periodicity) {
+            document.getElementById('subName').value = name;
+            document.getElementById('subAmount').value = amount;
+            document.getElementById('subPeriodicity').value = periodicity;
+            createSubscription();
+        }
+        
+        // получение подписок
+        function getSubscriptions() {
+            if (!token) {
+                alert('Сначала получите или установите токен (Шаг 1)');
+                return;
+            }
+            
+            const container = document.getElementById('subscriptionsContainer');
+            container.innerHTML = '<em>Загрузка подписок...</em>';
+            
+            fetch('http://localhost:5000/api/subscriptions', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                container.innerHTML = '';
+                
+                if (data.subscriptions && data.subscriptions.length > 0) {
+                    currentSubscriptions = data.subscriptions;
+                    updateStatus();
+                    
+                    let monthlyTotal = 0;
+                    let yearlyTotal = 0;
+                    
+                    data.subscriptions.forEach((sub, index) => {
+                        const subElement = document.createElement('div');
+                        subElement.className = 'subscription-item';
+                        
+                        // Рассчитываем суммы
+                        let monthlyAmount = sub.amount;
+                        if (sub.periodicity === 'yearly') monthlyAmount = sub.amount / 12;
+                        if (sub.periodicity === 'quarterly') monthlyAmount = sub.amount / 3;
+                        if (sub.periodicity === 'weekly') monthlyAmount = sub.amount * 4.33;
+                        if (sub.periodicity === 'daily') monthlyAmount = sub.amount * 30;
+                        
+                        monthlyTotal += monthlyAmount;
+                        yearlyTotal += monthlyAmount * 12;
+                        
+                        subElement.innerHTML = `
+                            <h4>${index + 1}. ${sub.name}</h4>
+                            <p><strong>Сумма:</strong> $${sub.amount} (${translatePeriodicity(sub.periodicity)})</p>
+                            <p><strong>Дата начала:</strong> ${formatDate(sub.start_date)}</p>
+                            <p><strong>Следующий платеж:</strong> ${formatDate(sub.next_payment_date)}</p>
+                            <p><strong>В месяц примерно:</strong> $${monthlyAmount.toFixed(2)}</p>
+                            <p><strong>ID:</strong> ${sub.id} | <strong>Статус:</strong> ${sub.is_active ? 'Активна' : 'Не активна'}</p>
+                        `;
+                        container.appendChild(subElement);
+                    });
+                    
+                    // Показываем итоговую статистику
+                    document.getElementById('subscriptionsSummary').style.display = 'block';
+                    document.getElementById('totalCount').textContent = data.subscriptions.length;
+                    document.getElementById('monthlyTotal').textContent = monthlyTotal.toFixed(2);
+                    document.getElementById('yearlyTotal').textContent = yearlyTotal.toFixed(2);
+                    
+                } else {
+                    container.innerHTML = 
+                        `<div class="info">
+                            <strong>У вас пока нет подписок</strong><br>
+                            Создайте первую подписку с помощью формы выше.
+                        </div>`;
+                }
+            })
+            .catch(error => {
+                container.innerHTML = 
+                    `<div class="error">
+                        <strong>Ошибка загрузки подписок:</strong> ${error.message}
+                    </div>`;
+            });
+        }
+        
+        function clearSubscriptionsDisplay() {
+            document.getElementById('subscriptionsContainer').innerHTML = '';
+            document.getElementById('subscriptionsSummary').style.display = 'none';
+        }
+        
+        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+        function clearResult(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+        
+        function translatePeriodicity(periodicity) {
+            const translations = {
+                'monthly': 'ежемесячно',
+                'yearly': 'ежегодно',
+                'weekly': 'еженедельно',
+                'daily': 'ежедневно',
+                'quarterly': 'ежеквартально'
+            };
+            return translations[periodicity] || periodicity;
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return 'Не указана';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU');
+        }
+        
+        function clearAllData() {
+            if (confirm('Вы уверены? Это очистит токен из localStorage.')) {
+                localStorage.removeItem('api_token');
+                token = '';
+                currentSubscriptions = [];
+                updateTokenDisplay();
+                clearSubscriptionsDisplay();
+                document.getElementById('manualToken').value = '';
+                alert('Данные очищены!');
+            }
+        }
+    </script>
+</body>
+</html>
